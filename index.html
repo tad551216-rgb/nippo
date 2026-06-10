@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>作業日報</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: #F4F6F2; color: #26312B;
+    font-family: "Hiragino Maru Gothic ProN", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+    padding-bottom: 110px; min-height: 100vh;
+  }
+  button { font-family: inherit; cursor: pointer; }
+  .header {
+    position: sticky; top: 0; z-index: 20; background: #3D6B52; color: #fff;
+    padding: 12px 14px 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  }
+  .header-row { display: flex; align-items: center; justify-content: space-between; }
+  .nav-btn {
+    background: rgba(255,255,255,0.18); border: none; color: #fff;
+    border-radius: 12px; width: 44px; height: 44px; font-size: 16px;
+  }
+  .date-label { font-size: 17px; font-weight: 700; letter-spacing: 1px; text-align: center; }
+  .today-btn {
+    margin-top: 4px; font-size: 12px; background: rgba(255,255,255,0.2);
+    border: none; color: #fff; border-radius: 999px; padding: 3px 12px;
+  }
+  .warn-banner {
+    background: #B85E5E; color: #fff; font-size: 13px; font-weight: 700;
+    padding: 8px 14px; line-height: 1.5;
+  }
+  .section-label { font-size: 14px; font-weight: 700; color: #5C6E63; margin: 4px 2px 8px; }
+  .pad { padding: 12px 12px 0; }
+  .pad14 { padding: 14px; }
+  .item-wrap { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .item-btn {
+    border: 3px solid transparent; background: #fff; color: #26312B;
+    border-radius: 14px; padding: 12px 16px; font-size: 16px; font-weight: 700;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px;
+  }
+  .item-btn .dot { width: 12px; height: 12px; border-radius: 999px; display: inline-block; }
+  .now-btn {
+    width: 100%; color: #fff; border: none; border-radius: 16px;
+    padding: 16px 0; font-size: 18px; font-weight: 700; margin-bottom: 16px;
+  }
+  .card { background: #fff; border-radius: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .timeline { overflow: hidden; }
+  .slot-row { display: flex; align-items: stretch; cursor: pointer; }
+  .slot-time {
+    width: 62px; flex-shrink: 0; font-size: 13px; padding: 10px 8px;
+    text-align: right; font-variant-numeric: tabular-nums;
+  }
+  .slot-bar {
+    flex: 1; margin: 3px 8px 3px 0; border-radius: 8px; min-height: 34px;
+    background: #F6F8F5; color: #fff; font-size: 15px; font-weight: 700;
+    display: flex; align-items: center; padding-left: 12px; transition: background 0.15s;
+  }
+  .sum-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0; border-bottom: 1px solid #F0F3EF; font-size: 16px;
+  }
+  .sum-name { display: flex; align-items: center; gap: 10px; }
+  .sq { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+  .report-pre {
+    padding: 16px; font-size: 14px; line-height: 1.7; white-space: pre-wrap;
+    font-family: inherit; user-select: text; -webkit-user-select: text;
+  }
+  .big-btn {
+    width: 100%; margin-top: 12px; background: #3D6B52; color: #fff; border: none;
+    border-radius: 16px; padding: 16px 0; font-size: 17px; font-weight: 700;
+  }
+  .del-btn {
+    background: #FBEAE6; color: #B85E5E; border: none; border-radius: 10px;
+    padding: 6px 12px; font-size: 14px; font-weight: 700;
+  }
+  .mv-btn {
+    background: #EAF1EC; color: #3D6B52; border: none; border-radius: 10px;
+    width: 38px; height: 34px; font-size: 14px; font-weight: 700;
+  }
+  input[type=text], select {
+    border: 2px solid #DDE4DC; border-radius: 12px; padding: 10px 12px;
+    font-size: 16px; background: #fff; font-family: inherit;
+  }
+  .add-btn {
+    background: #3D6B52; color: #fff; border: none; border-radius: 12px;
+    padding: 10px 16px; font-size: 16px; font-weight: 700;
+  }
+  .toast {
+    position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%);
+    background: #26312B; color: #fff; border-radius: 999px; padding: 10px 20px;
+    font-size: 14px; font-weight: 700; z-index: 50; white-space: nowrap;
+    max-width: 92vw; overflow: hidden; text-overflow: ellipsis;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .toast.show { opacity: 1; }
+  .tabbar {
+    position: fixed; bottom: 0; left: 0; right: 0; background: #fff;
+    border-top: 1px solid #E2E8E0; display: flex; z-index: 30;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .tab {
+    flex: 1; border: none; background: none; padding: 10px 0 12px;
+    font-size: 13px; font-weight: 700; color: #A8B3AB;
+  }
+  .tab.active { color: #3D6B52; }
+  .tab .ico { font-size: 20px; }
+  .note { font-size: 13px; color: #7A8A80; margin-top: 12px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div id="warn" class="warn-banner" style="display:none">
+  ⚠️ この開き方では記録を保存できません。「Documents」などのアプリでこのファイルを開いてください。
+</div>
+<div class="header">
+  <div class="header-row">
+    <button class="nav-btn" onclick="changeDate(-1)">◀</button>
+    <div>
+      <div class="date-label" id="dateLabel"></div>
+      <div style="text-align:center"><button class="today-btn" id="todayBtn" onclick="goToday()" style="display:none">今日に戻る</button></div>
+    </div>
+    <button class="nav-btn" onclick="changeDate(1)">▶</button>
+  </div>
+</div>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+<div class="tabbar">
+  <button class="tab" id="tab-record" onclick="setView('record')"><div class="ico">✏️</div>記録</button>
+  <button class="tab" id="tab-report" onclick="setView('report')"><div class="ico">📋</div>日報</button>
+  <button class="tab" id="tab-settings" onclick="setView('settings')"><div class="ico">⚙️</div>設定</button>
+</div>
+
+<script>
+"use strict";
+// ===== 定数 =====
+var COLORS = ["#5B8C5A","#C77B4E","#5E7CB8","#B85E7C","#8A6FB8","#4E9E9A","#B89B4E","#7C8A5E","#B85E5E","#5E9EB8"];
+var DEFAULT_ITEMS = [
+  { id:"i1", name:"送迎", color:COLORS[0] },
+  { id:"i2", name:"個別支援", color:COLORS[1] },
+  { id:"i3", name:"集団活動", color:COLORS[2] },
+  { id:"i4", name:"食事買出し", color:COLORS[3] },
+  { id:"i5", name:"記録作成", color:COLORS[4] },
+  { id:"i6", name:"清掃・消毒", color:COLORS[5] },
+  { id:"i7", name:"会議・打合せ", color:COLORS[6] },
+  { id:"i8", name:"介護支援", color:COLORS[7] },
+  { id:"i9", name:"休憩", color:"#9CA3AF" }
+];
+var WEEKDAYS = ["日","月","火","水","木","金","土"];
+
+// ===== 保存（端末内 localStorage）=====
+var storageOK = true;
+try {
+  localStorage.setItem("nippo-test","1");
+  localStorage.removeItem("nippo-test");
+} catch(e) { storageOK = false; }
+if (!storageOK) document.getElementById("warn").style.display = "block";
+
+function load(key, fallback) {
+  if (!storageOK) return fallback;
+  try {
+    var v = localStorage.getItem(key);
+    return v ? JSON.parse(v) : fallback;
+  } catch(e) { return fallback; }
+}
+function save(key, value) {
+  if (!storageOK) return;
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch(e) {}
+}
+
+// ===== 状態 =====
+var items = load("nippo-items", null) || DEFAULT_ITEMS.slice();
+var settings = load("nippo-settings", null) || { startHour:9, endHour:22 };
+var current = new Date();
+var slots = {};
+var activeItem = null;
+var view = "record";
+
+function dateKey(d) {
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function fmtDate(d) {
+  return d.getFullYear() + "年" + (d.getMonth()+1) + "月" + d.getDate() + "日（" + WEEKDAYS[d.getDay()] + "）";
+}
+function slotCount() { return Math.max(0, (settings.endHour - settings.startHour) * 4); }
+function slotLabel(idx) {
+  var t = idx*15;
+  return String(Math.floor(t/60)).padStart(2,"0") + ":" + String(t%60).padStart(2,"0");
+}
+function minutesToStr(min) {
+  var h = Math.floor(min/60), m = min%60;
+  if (h===0) return m+"分";
+  if (m===0) return h+"時間";
+  return h+"時間"+m+"分";
+}
+function loadDay() { slots = load("nippo-day-"+dateKey(current), {slots:{}}).slots || {}; }
+function saveDay() { save("nippo-day-"+dateKey(current), {slots:slots}); }
+function itemOf(id) { for (var i=0;i<items.length;i++) if (items[i].id===id) return items[i]; return null; }
+function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+var toastTimer = null;
+function showToast(msg) {
+  var t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.classList.remove("show"); }, 1800);
+}
+
+// ===== 操作 =====
+function changeDate(delta) {
+  current.setDate(current.getDate()+delta);
+  loadDay(); render();
+}
+function goToday() { current = new Date(); loadDay(); render(); }
+function setView(v) { view = v; render(); }
+function selectItem(id) { activeItem = (activeItem===id) ? null : id; render(); }
+function tapSlot(idx) {
+  if (!activeItem) { showToast("先に作業項目を選んでください"); return; }
+  if (slots[idx] === activeItem) delete slots[idx];
+  else slots[idx] = activeItem;
+  saveDay(); render();
+}
+function recordNow() {
+  if (!activeItem) { showToast("先に作業項目を選んでください"); return; }
+  var now = new Date();
+  if (dateKey(now) !== dateKey(current)) { showToast("今日の日付に切り替えてから記録してください"); return; }
+  var idx = Math.floor((now.getHours()*60 + now.getMinutes())/15);
+  if (idx < settings.startHour*4 || idx >= settings.endHour*4) { showToast("現在時刻が表示範囲外です"); return; }
+  slots[idx] = activeItem;
+  saveDay(); render();
+  var it = itemOf(activeItem);
+  showToast(slotLabel(idx) + "〜 に「" + (it?it.name:"") + "」を記録しました");
+}
+function addItem() {
+  var input = document.getElementById("newItem");
+  var name = input.value.trim();
+  if (!name) return;
+  items.push({ id:"i"+Date.now(), name:name, color:COLORS[items.length % COLORS.length] });
+  save("nippo-items", items);
+  input.value = "";
+  render();
+}
+function removeItem(id) {
+  items = items.filter(function(i){ return i.id !== id; });
+  if (activeItem===id) activeItem = null;
+  save("nippo-items", items);
+  render();
+}
+function moveItem(id, dir) {
+  var idx = -1;
+  for (var i=0;i<items.length;i++) if (items[i].id===id) { idx=i; break; }
+  var to = idx + dir;
+  if (idx<0 || to<0 || to>=items.length) return;
+  var m = items.splice(idx,1)[0];
+  items.splice(to,0,m);
+  save("nippo-items", items);
+  render();
+}
+var editingId = null;
+function startEdit(id) {
+  editingId = id;
+  render();
+  var input = document.getElementById("editName");
+  if (input) input.focus();
+}
+function cancelEdit() {
+  editingId = null;
+  render();
+}
+function saveEdit() {
+  var input = document.getElementById("editName");
+  if (!input) return;
+  var name = input.value.trim();
+  if (!name) return;
+  for (var i=0;i<items.length;i++) {
+    if (items[i].id === editingId) { items[i].name = name; break; }
+  }
+  save("nippo-items", items);
+  editingId = null;
+  render();
+}
+function updateHours() {
+  var s = Number(document.getElementById("startH").value);
+  var e = Number(document.getElementById("endH").value);
+  if (e <= s) e = s + 1;
+  settings = { startHour:s, endHour:e };
+  save("nippo-settings", settings);
+  render();
+}
+
+// ===== 日報 =====
+function totals() {
+  var t = {};
+  for (var k in slots) { var id = slots[k]; t[id] = (t[id]||0) + 15; }
+  return t;
+}
+function buildReport() {
+  var t = totals(), total = 0, lines = ["【作業日報】" + fmtDate(current), "", "■ 作業時間"];
+  items.forEach(function(it){
+    if (t[it.id]) { lines.push("・" + it.name + "：" + minutesToStr(t[it.id])); total += t[it.id]; }
+  });
+  lines.push("合計：" + minutesToStr(total), "", "■ タイムライン");
+  var n = 96, i = 0;
+  while (i < n) {
+    var id = slots[i];
+    if (!id) { i++; continue; }
+    var j = i;
+    while (j+1 < n && slots[j+1] === id) j++;
+    var it = itemOf(id);
+    lines.push(slotLabel(i) + "〜" + slotLabel(j+1) + "　" + (it ? it.name : "（削除済み項目）"));
+    i = j + 1;
+  }
+  return lines.join("\n");
+}
+function copyReport() {
+  var text = buildReport();
+  var done = function(){ showToast("日報をコピーしました"); };
+  var fail = function(){ showToast("コピーできませんでした。長押しで選択してください"); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function(){ legacyCopy(text) ? done() : fail(); });
+  } else {
+    legacyCopy(text) ? done() : fail();
+  }
+}
+function legacyCopy(text) {
+  var ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed"; ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  var ok = false;
+  try { ok = document.execCommand("copy"); } catch(e) {}
+  document.body.removeChild(ta);
+  return ok;
+}
+
+// ===== 描画 =====
+function render() {
+  document.getElementById("dateLabel").textContent = fmtDate(current);
+  document.getElementById("todayBtn").style.display = (dateKey(current)===dateKey(new Date())) ? "none" : "inline-block";
+  ["record","report","settings"].forEach(function(v){
+    document.getElementById("tab-"+v).className = "tab" + (view===v ? " active" : "");
+  });
+  var app = document.getElementById("app");
+  if (view === "record") app.innerHTML = renderRecord();
+  else if (view === "report") app.innerHTML = renderReport();
+  else app.innerHTML = renderSettings();
+}
+
+function renderRecord() {
+  var h = '<div class="pad"><div class="section-label">① 作業項目を選ぶ</div><div class="item-wrap">';
+  items.forEach(function(it){
+    var sel = activeItem === it.id;
+    h += '<button class="item-btn" style="' +
+      (sel ? 'background:'+it.color+';color:#fff;border-color:'+it.color : '') +
+      '" onclick="selectItem(\''+it.id+'\')">' +
+      (sel ? '' : '<span class="dot" style="background:'+it.color+'"></span>') +
+      esc(it.name) + '</button>';
+  });
+  h += '</div>';
+  h += '<button class="now-btn" style="background:' + (activeItem ? '#C77B4E;box-shadow:0 3px 8px rgba(199,123,78,0.4)' : '#C9CFC8') + '" onclick="recordNow()">⏺ いまの時間に記録する</button>';
+  h += '<div class="section-label">② 時間帯をタップして記録（もう一度タップで取消）</div>';
+  h += '<div class="card timeline">';
+  var n = settings.endHour*4;
+  for (var idx=settings.startHour*4; idx<n; idx++) {
+    var id = slots[idx];
+    var it = id ? itemOf(id) : null;
+    var isHour = idx % 4 === 0;
+    h += '<div class="slot-row" style="border-top:' + (isHour ? '2px solid #DDE4DC' : '1px solid #F0F3EF') + '" onclick="tapSlot('+idx+')">';
+    h += '<div class="slot-time" style="color:'+(isHour?'#3D6B52':'#A8B3AB')+';font-weight:'+(isHour?'700':'400')+'">'+slotLabel(idx)+'</div>';
+    h += '<div class="slot-bar" style="'+(it?'background:'+it.color:'')+'">'+(it?esc(it.name):'')+'</div>';
+    h += '</div>';
+  }
+  h += '</div></div>';
+  return h;
+}
+
+function renderReport() {
+  var t = totals(), total = 0;
+  var h = '<div class="pad14"><div class="section-label">作業時間の集計</div><div class="card" style="padding:16px;margin-bottom:14px">';
+  var any = false;
+  items.forEach(function(it){
+    if (t[it.id]) {
+      any = true; total += t[it.id];
+      h += '<div class="sum-row"><span class="sum-name"><span class="sq" style="background:'+it.color+'"></span>'+esc(it.name)+'</span><span style="font-weight:700">'+minutesToStr(t[it.id])+'</span></div>';
+    }
+  });
+  if (!any) {
+    h += '<div style="color:#7A8A80;font-size:15px">まだ記録がありません。「記録」タブから入力してください。</div>';
+  } else {
+    h += '<div style="display:flex;justify-content:space-between;padding-top:12px;font-size:17px;font-weight:700;color:#3D6B52"><span>合計</span><span>'+minutesToStr(total)+'</span></div>';
+  }
+  h += '</div>';
+  h += '<div class="section-label">日報テキスト（提出用）</div>';
+  h += '<pre class="card report-pre">'+esc(buildReport())+'</pre>';
+  h += '<button class="big-btn" onclick="copyReport()">日報をコピーする</button></div>';
+  return h;
+}
+
+function renderSettings() {
+  var h = '<div class="pad14"><div class="section-label">作業項目の編集</div><div class="card" style="padding:14px;margin-bottom:16px">';
+  items.forEach(function(it){
+    if (editingId === it.id) {
+      h += '<div class="sum-row"><input type="text" id="editName" value="'+esc(it.name)+'" style="flex:1;min-width:0;margin-right:8px;padding:8px 10px">';
+      h += '<span style="display:flex;gap:6px"><button class="add-btn" style="border-radius:10px;padding:6px 12px;font-size:14px" onclick="saveEdit()">保存</button><button class="mv-btn" onclick="cancelEdit()">✕</button></span></div>';
+    } else {
+      h += '<div class="sum-row"><span class="sum-name" style="flex:1;cursor:pointer" onclick="startEdit(\''+it.id+'\')"><span class="sq" style="background:'+it.color+'"></span>'+esc(it.name)+'<span style="font-size:13px;color:#A8B3AB">✎</span></span><span style="display:flex;gap:6px"><button class="mv-btn" onclick="moveItem(\''+it.id+'\',-1)">▲</button><button class="mv-btn" onclick="moveItem(\''+it.id+'\',1)">▼</button><button class="del-btn" onclick="removeItem(\''+it.id+'\')">削除</button></span></div>';
+    }
+  });
+  h += '<div style="display:flex;gap:8px;margin-top:12px"><input type="text" id="newItem" placeholder="新しい作業項目名" style="flex:1"><button class="add-btn" onclick="addItem()">追加</button></div></div>';
+  h += '<div class="section-label">表示する時間帯</div>';
+  h += '<div class="card" style="padding:14px;display:flex;align-items:center;gap:10px;font-size:16px">';
+  h += '<select id="startH" style="flex:1" onchange="updateHours()">';
+  for (var s=0; s<24; s++) h += '<option value="'+s+'"'+(settings.startHour===s?' selected':'')+'>'+s+':00</option>';
+  h += '</select><span>〜</span><select id="endH" style="flex:1" onchange="updateHours()">';
+  for (var e=1; e<=24; e++) h += '<option value="'+e+'"'+(settings.endHour===e?' selected':'')+'>'+e+':00</option>';
+  h += '</select></div>';
+  h += '<p class="note">記録はこのiPhoneの中に日付ごとに自動保存されます。'+(storageOK?'保存は正常に動作しています。':'⚠️ 現在保存が無効です。Documentsなどのアプリで開き直してください。')+'</p></div>';
+  return h;
+}
+
+loadDay();
+render();
+</script>
+</body>
+</html>
