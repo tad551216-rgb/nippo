@@ -184,6 +184,7 @@ function save(key, value) {
 // ===== 状態 =====
 var items = load("nippo-items", null) || DEFAULT_ITEMS.slice();
 var settings = load("nippo-settings", null) || { startHour:9, endHour:22 };
+var staffName = load("nippo-staffname", "") || "";
 var current = new Date();
 var slots = {};
 var view = "record";
@@ -365,7 +366,10 @@ function totals() {
   return t;
 }
 function buildReport() {
-  var t = totals(), total = 0, lines = ["【作業日報】" + fmtDate(current), "", "■ 作業時間"];
+  var t = totals(), total = 0;
+  var head = "【作業日報】" + fmtDate(current);
+  if (staffName) head += "　" + staffName;
+  var lines = [head, "", "■ 作業時間"];
   items.forEach(function(it){
     if (t[it.id]) { lines.push("・" + it.name + "：" + minutesToStr(t[it.id])); total += t[it.id]; }
   });
@@ -380,6 +384,12 @@ function buildReport() {
     lines.push(slotLabel(i) + "〜" + slotLabel(j+1) + "　" + (it ? it.name : "（削除済み項目）"));
     i = j + 1;
   }
+  // 集計用データ行（集計アプリが読み取る。人は無視してOK）
+  var parts = ["#NIPPO1", (staffName || "未設定"), dateKey(current)];
+  items.forEach(function(it){
+    if (t[it.id]) parts.push(it.name + "=" + t[it.id]);
+  });
+  lines.push("", parts.join("|"));
   return lines.join("\n");
 }
 function legacyCopy(text) {
@@ -464,8 +474,17 @@ function updateHours() {
   save("nippo-settings", settings);
   render();
 }
+function saveStaffName() {
+  var el = document.getElementById("staffName");
+  if (!el) return;
+  staffName = el.value;
+  save("nippo-staffname", staffName);
+}
 function renderSettings() {
-  var h = '<div class="scroll-area"><div class="section-label">作業項目の編集（名前をタップで変更）</div><div class="card" style="padding:14px;margin-bottom:16px">';
+  var h = '<div class="scroll-area">';
+  h += '<div class="section-label">お名前（日報に表示されます）</div>';
+  h += '<div class="card" style="padding:14px;margin-bottom:16px"><input type="text" id="staffName" value="'+esc(staffName)+'" placeholder="例：山田太郎" style="width:100%" oninput="saveStaffName()"></div>';
+  h += '<div class="section-label">作業項目の編集（名前をタップで変更）</div><div class="card" style="padding:14px;margin-bottom:16px">';
   items.forEach(function(it){
     if (editingId === it.id) {
       h += '<div class="sum-row"><input type="text" id="editName" value="'+esc(it.name)+'" style="flex:1;min-width:0;margin-right:8px;padding:8px 10px">';
@@ -483,6 +502,9 @@ function renderSettings() {
   for (var e=1; e<=24; e++) h += '<option value="'+e+'"'+(settings.endHour===e?' selected':'')+'>'+e+':00</option>';
   h += '</select></div>';
   h += '<p class="note">記録はこのiPhoneの中に日付ごとに自動保存されます。'+(storageOK?'保存は正常に動作しています。':'⚠️ 現在保存が無効です。')+'</p>';
+  h += '<div class="section-label" style="margin-top:20px">使い方の資料</div>';
+  h += '<a href="nippo-install.pdf" target="_blank" rel="noopener" style="display:block;text-decoration:none;margin-bottom:10px"><div class="card" style="padding:14px;display:flex;align-items:center;gap:12px"><span style="font-size:26px">📄</span><div style="flex:1"><div style="font-size:16px;font-weight:700;color:#3D6B52">iPhone版 インストール手順書</div><div style="font-size:13px;color:#7A8A80;margin-top:2px">タップでPDFを開きます</div></div><span style="font-size:20px;color:#A8B3AB">›</span></div></a>';
+  h += '<a href="android-nippo-instal.pdf" target="_blank" rel="noopener" style="display:block;text-decoration:none"><div class="card" style="padding:14px;display:flex;align-items:center;gap:12px"><span style="font-size:26px">📄</span><div style="flex:1"><div style="font-size:16px;font-weight:700;color:#3D6B52">Android版 インストール手順書</div><div style="font-size:13px;color:#7A8A80;margin-top:2px">タップでPDFを開きます</div></div><span style="font-size:20px;color:#A8B3AB">›</span></div></a>';
   h += '<div class="section-label" style="margin-top:20px">免責事項</div>';
   h += '<div class="card" style="padding:14px"><p style="font-size:12px;color:#7A8A80;line-height:1.8;margin:0">本アプリは業務補助を目的とした無償提供であり、動作・記録内容の正確性は保証されません。提出前に内容をご確認ください。端末の故障・データ消去・機種変更等による記録の消失、その他利用により生じた損害について、作成者・提供者は責任を負いません。内容は予告なく変更・終了する場合があります。利用をもって本事項に同意したものとみなします。</p></div>';
   h += '</div>';
