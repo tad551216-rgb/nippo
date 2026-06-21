@@ -159,6 +159,7 @@ var DEFAULT_ITEMS = [
   { id:"i3", name:"買出支援", color:COLORS[2] },
   { id:"i7", name:"介護支援", color:COLORS[5] },
   { id:"i4", name:"休憩", color:"#9CA3AF" },
+  { id:"i8", name:"掃除", color:COLORS[6] },
   { id:"i5", name:"会議", color:COLORS[3] },
   { id:"i6", name:"講習会", color:COLORS[4] }
 ];
@@ -183,6 +184,7 @@ function save(key, value) {
 // ===== 状態 =====
 var items = load("nippo-items", null) || DEFAULT_ITEMS.slice();
 var settings = load("nippo-settings", null) || { startHour:9, endHour:22 };
+var staffName = load("nippo-staffname", "") || "";
 var current = new Date();
 var slots = {};
 var view = "record";
@@ -364,7 +366,10 @@ function totals() {
   return t;
 }
 function buildReport() {
-  var t = totals(), total = 0, lines = ["【作業日報】" + fmtDate(current), "", "■ 作業時間"];
+  var t = totals(), total = 0;
+  var head = "【作業日報】" + fmtDate(current);
+  if (staffName) head += "　" + staffName;
+  var lines = [head, "", "■ 作業時間"];
   items.forEach(function(it){
     if (t[it.id]) { lines.push("・" + it.name + "：" + minutesToStr(t[it.id])); total += t[it.id]; }
   });
@@ -379,6 +384,12 @@ function buildReport() {
     lines.push(slotLabel(i) + "〜" + slotLabel(j+1) + "　" + (it ? it.name : "（削除済み項目）"));
     i = j + 1;
   }
+  // 集計用データ行（集計アプリが読み取る。人は無視してOK）
+  var parts = ["#NIPPO1", (staffName || "未設定"), dateKey(current)];
+  items.forEach(function(it){
+    if (t[it.id]) parts.push(it.name + "=" + t[it.id]);
+  });
+  lines.push("", parts.join("|"));
   return lines.join("\n");
 }
 function legacyCopy(text) {
@@ -463,8 +474,17 @@ function updateHours() {
   save("nippo-settings", settings);
   render();
 }
+function saveStaffName() {
+  var el = document.getElementById("staffName");
+  if (!el) return;
+  staffName = el.value;
+  save("nippo-staffname", staffName);
+}
 function renderSettings() {
-  var h = '<div class="scroll-area"><div class="section-label">作業項目の編集（名前をタップで変更）</div><div class="card" style="padding:14px;margin-bottom:16px">';
+  var h = '<div class="scroll-area">';
+  h += '<div class="section-label">お名前（日報に表示されます）</div>';
+  h += '<div class="card" style="padding:14px;margin-bottom:16px"><input type="text" id="staffName" value="'+esc(staffName)+'" placeholder="例：山田太郎" style="width:100%" oninput="saveStaffName()"></div>';
+  h += '<div class="section-label">作業項目の編集（名前をタップで変更）</div><div class="card" style="padding:14px;margin-bottom:16px">';
   items.forEach(function(it){
     if (editingId === it.id) {
       h += '<div class="sum-row"><input type="text" id="editName" value="'+esc(it.name)+'" style="flex:1;min-width:0;margin-right:8px;padding:8px 10px">';
