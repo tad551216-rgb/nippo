@@ -7,6 +7,10 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="apple-touch-icon.png">
 <meta name="theme-color" content="#3D6B52">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="日報">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; }
@@ -502,10 +506,74 @@ function renderSettings() {
   for (var e=1; e<=24; e++) h += '<option value="'+e+'"'+(settings.endHour===e?' selected':'')+'>'+e+':00</option>';
   h += '</select></div>';
   h += '<p class="note">記録はこのiPhoneの中に日付ごとに自動保存されます。'+(storageOK?'保存は正常に動作しています。':'⚠️ 現在保存が無効です。')+'</p>';
+  h += '<div class="section-label" style="margin-top:20px">お試しと、まっさらに戻す</div>';
+  h += '<div class="card" style="padding:14px;margin-bottom:16px">';
+  h += '<p class="note" style="margin:0 0 10px">見本として、直近3日分の日報が入ります。お名前と作業項目も見本のものに変わります。使い方を試すとき、職員の方に説明するときにお使いください。</p>';
+  h += '<button class="add-btn" style="width:100%;padding:12px" onclick="putSample()">🧪 サンプルデータを入れて試す</button>';
+  h += '<p class="note" style="margin:14px 0 10px">保存されているすべての日報・作業項目・お名前を消して、まっさらに戻します。</p>';
+  h += '<button class="del-btn" style="width:100%;padding:12px" onclick="clearAllData()">🗑 すべてのデータを消す</button>';
+  h += '</div>';
   h += '<div class="section-label" style="margin-top:20px">免責事項</div>';
   h += '<div class="card" style="padding:14px"><p style="font-size:12px;color:#7A8A80;line-height:1.8;margin:0">本アプリは業務補助を目的とした無償提供であり、動作・記録内容の正確性は保証されません。提出前に内容をご確認ください。端末の故障・データ消去・機種変更等による記録の消失、その他利用により生じた損害について、作成者・提供者は責任を負いません。内容は予告なく変更・終了する場合があります。利用をもって本事項に同意したものとみなします。</p></div>';
   h += '</div>';
   return h;
+}
+
+/* ===== お試し用のサンプルデータ =====
+   直近3日分の日報を入れます。実在しない記録です。 */
+function fillSlots(map) {
+  var o = {};
+  map.forEach(function(r){ for (var i=r[0]; i<=r[1]; i++) o[i] = r[2]; });
+  return o;
+}
+function sampleDays() {
+  /* 15分きざみの通し番号。9時は36、12時は48、18時は72 */
+  var d0 = fillSlots([[36,37,"i8"],[38,47,"i2"],[48,51,"i4"],[52,55,"i3"],
+                      [56,59,"i1"],[60,69,"i2"],[70,71,"i5"]]);
+  var d1 = fillSlots([[36,37,"i8"],[38,47,"i2"],[48,51,"i4"],[52,59,"i7"],
+                      [60,63,"i1"],[64,71,"i2"]]);
+  var d2 = fillSlots([[36,47,"i2"],[48,51,"i4"],[52,67,"i6"],[68,71,"i1"]]);
+  return [d0, d1, d2];
+}
+function putSample() {
+  if (!storageOK) { alert("この開き方では保存できません。"); return; }
+  if (!confirm("お名前・作業項目・直近3日分の日報を、見本のものに置き換えます。\nよろしいですか？")) return;
+  items = DEFAULT_ITEMS.slice();
+  settings = { startHour:8, endHour:19 };
+  staffName = "山田 花子";
+  save("nippo-items", items);
+  save("nippo-settings", settings);
+  save("nippo-staffname", staffName);
+  var days = sampleDays();
+  var base = new Date();
+  for (var i=0;i<days.length;i++) {
+    var d = new Date(base.getFullYear(), base.getMonth(), base.getDate()-i);
+    save("nippo-day-"+dateKey(d), { slots: days[i] });
+  }
+  current = new Date();
+  loadDay();
+  render();
+  alert("サンプルを入れました。");
+}
+function clearAllData() {
+  if (!storageOK) return;
+  if (!confirm("保存されているすべての日報・作業項目・お名前を消します。\n元にもどせません。よろしいですか？")) return;
+  if (!confirm("本当によろしいですか？\n必要な日報は、先に控えをお取りください。")) return;
+  try {
+    var del = [];
+    for (var i=0;i<localStorage.length;i++) {
+      var k = localStorage.key(i);
+      if (k && k.indexOf("nippo-") === 0) del.push(k);
+    }
+    del.forEach(function(k){ localStorage.removeItem(k); });
+  } catch(e) {}
+  items = DEFAULT_ITEMS.slice();
+  settings = { startHour:9, endHour:22 };
+  staffName = "";
+  slots = {};
+  current = new Date();
+  render();
+  alert("消しました。");
 }
 
 // ===== 描画 =====
@@ -545,6 +613,14 @@ if (isToday()) setTimeout(function(){
     if (row) row.scrollIntoView({ block: "center" });
   }
 }, 60);
+</script>
+<script>
+/* 電波のないところでも開けるように、控えを持たせる */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  });
+}
 </script>
 </body>
 </html>
